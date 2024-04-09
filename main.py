@@ -97,15 +97,13 @@ def plot_weight_distribution(model, model_name):
         plt.ylabel('Frequency')
 
     plt.tight_layout()
+    plt.savefig(f"images/{model_name}_weight_distribution.jpg")
     plt.show()
 
 # Plot weight distributions
 plot_weight_distribution(model_1, 'First Model')
-plt.savefig("images/model_1_saved_image.jpg")
 plot_weight_distribution(model_2, 'Second Model (with Noise)')
-plt.savefig("images/model_2_saved_image.jpg")
 plot_weight_distribution(model_3, 'Third Model (Quantized)')
-plt.savefig("images/model_3_saved_image.jpg")
 
 
 
