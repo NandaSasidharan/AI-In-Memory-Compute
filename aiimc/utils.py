@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.fx as fx
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
 
@@ -8,6 +9,7 @@ __all__ = [
     'train',
     'quantize',
     'evaluate_accuracy',
+    'replace_layer',
 ]
 
 
@@ -106,3 +108,26 @@ def evaluate_accuracy(model, data_loader):
             correct += (predicted == labels).sum().item()
     return correct / total
 
+def replace_layer(model, original_layer, new_layer):
+    # Create a symbolic trace of the model
+    traced = fx.symbolic_trace(model)
+
+    # Iterate over all nodes in the graph
+    for node in traced.graph.nodes:
+        # If the node is a call_module node (i.e., it corresponds to a nn.Module in the original model)
+        if node.op == 'call_module':
+            # If the module is an instance of original_layer
+            if isinstance(getattr(traced, node.target), original_layer):
+                # Get the module
+                original_layer_module = getattr(traced, node.target)
+                # Create a new new_layer module with the same parameters
+                new_layer_module = new_layer(original_layer_module.in_features, original_layer_module.out_features)
+                new_layer_module.weight = original_layer_module.weight
+                new_layer_module.bias = original_layer_module.bias
+                # Replace the old module with the new one
+                setattr(traced, node.target, new_layer_module)
+
+    # Recompile the graph to propagate the changes we made
+    traced.recompile()
+
+    return traced
